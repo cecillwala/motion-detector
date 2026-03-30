@@ -92,7 +92,7 @@ import cv2
 
 
 class CameraStream:
-    def __init__(self, source=0, width=640, height=480):
+    def __init__(self, source="tcp://192.168.122.1:5000", width=640, height=480):
         """
         Initialize the camera.
 
@@ -273,7 +273,7 @@ class CameraStream:
 if __name__ == "__main__":
 
     # Open the webcam
-    camera = CameraStream(source=0)
+    camera = CameraStream(source="tcp://192.168.122.1:5000")
 
     # Print the frame size to the terminal
     width, height = camera.get_frame_dimensions()
