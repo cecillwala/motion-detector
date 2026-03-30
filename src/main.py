@@ -73,6 +73,7 @@ from face_eye import FaceEyeDetector
 from ear_logic import EARCalculator
 from alerts import AlertManager
 import cv2
+import sys
 
 
 # ═══════════════════════════════════════════════════════════
@@ -80,7 +81,9 @@ import cv2
 # Update PI_IP to match your Raspberry Pi's actual IP address.
 # Use "localhost" if running directly on the Pi.
 # ═══════════════════════════════════════════════════════════
-PI_IP = "192.168.x.x"  # ← CHANGE THIS to your Pi's IP
+PI_IP = "172.21.125.170"  # ← CHANGE THIS to your Pi's IP
+
+CAMERA_SOURCE = "tcp://192.168.122.1:5000"
 
 
 def main():
@@ -101,7 +104,7 @@ def main():
     print("\nInitializing modules...")
 
     # Silvana's module: opens the webcam
-    camera = CameraStream(source=0)
+    camera = CameraStream(source=CAMERA_SOURCE)
     print("  [✓] Camera initialized (640x480)")
 
     # Melanie & Stan's module: detects motion between frames
