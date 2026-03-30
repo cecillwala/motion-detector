@@ -83,7 +83,7 @@ import sys
 # ═══════════════════════════════════════════════════════════
 PI_IP = "172.21.125.170"  # ← CHANGE THIS to your Pi's IP
 
-CAMERA_SOURCE = "tcp://172.21.125.24:5000"
+CAMERA_SOURCE = "http://172.21.125.24:5000"
 
 
 def main():
