@@ -83,7 +83,7 @@ import sys
 # ═══════════════════════════════════════════════════════════
 PI_IP = "172.21.125.170"  # ← CHANGE THIS to your Pi's IP
 
-CAMERA_SOURCE = "tcp://192.168.122.1:5000"
+CAMERA_SOURCE = "tcp://172.21.125.24:5000"
 
 
 def main():
@@ -102,9 +102,18 @@ def main():
     print("  COMP 494: Special Topics in Computer Science")
     print("═" * 50)
     print("\nInitializing modules...")
+    source = ""
+
+    if len(sys.argv) > 1:
+        source = sys.argv[1]
+        # If it's a plain number, convert to int (local camera index)
+        if source.isdigit():
+            source = int(source)
+    else:
+        source = CAMERA_SOURCE
 
     # Silvana's module: opens the webcam
-    camera = CameraStream(source=CAMERA_SOURCE)
+    camera = CameraStream(source=source)
     print("  [✓] Camera initialized (640x480)")
 
     # Melanie & Stan's module: detects motion between frames
