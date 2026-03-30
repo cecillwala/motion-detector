@@ -219,7 +219,7 @@ import time
 
 class CameraStream:
 
-    def __init__(self, source="tcp://192.168.122.1:5000", width=640, height=480):
+    def __init__(self, source="http://172.21.125.24:5000", width=640, height=480):
         # Open the webcam — source=0 means the laptop's built-in camera
         self.cap = cv2.VideoCapture(source)
 
@@ -273,7 +273,7 @@ class CameraStream:
 if __name__ == "__main__":
 
     # Open the webcam
-    camera = CameraStream(source="tcp://192.168.122.1:5000")
+    camera = CameraStream(source="http://172.21.125.24:5000")
 
     # Print the frame size to the terminal
     width, height = camera.get_frame_dimensions()
