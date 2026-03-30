@@ -92,7 +92,7 @@ import cv2
 
 
 class CameraStream:
-    def __init__(self, source="tcp://192.168.122.1:5000", width=640, height=480):
+    def __init__(self, source="tcp://172.21.125.24:5000", width=640, height=480):
         """
         Initialize the camera.
 
