@@ -212,3 +212,105 @@ if __name__ == "__main__":
     """
     # YOUR CODE HERE
     pass
+
+import cv2
+import time
+
+
+class CameraStream:
+
+    def __init__(self, source=0, width=640, height=480):
+        # Open the webcam — source=0 means the laptop's built-in camera
+        self.cap = cv2.VideoCapture(source)
+
+        # Set the resolution to 640x480 pixels
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+
+        # Stop the program if the camera could not be opened
+        if not self.cap.isOpened():
+            raise RuntimeError(f"Could not open camera source: {source}")
+
+        # Save width and height so other methods can use them
+        self.width = width
+        self.height = height
+
+        print(f"[Camera] Webcam opened. Resolution: {width} x {height}")
+
+    def read_frame(self):
+        # Capture one frame from the webcam
+        # ret  = True if it worked, False if something went wrong
+        # frame = the actual image as a grid of pixel values
+        ret, frame = self.cap.read()
+
+        return (ret, frame)
+
+    def get_frame_dimensions(self):
+        # Read the actual width and height from the camera
+        w = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        h = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+        return (w, h)
+
+    def release(self):
+        # Free the camera so other apps can use it
+        self.cap.release()
+
+        # Close any open OpenCV windows
+        cv2.destroyAllWindows()
+
+        print("[Camera] Camera released.")
+
+    def __enter__(self):
+        # Allows using this class with Python's 'with' statement
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        # Automatically release the camera when 'with' block ends
+        self.release()
+
+
+if __name__ == "__main__":
+
+    # Open the webcam
+    camera = CameraStream(source=0)
+
+    # Print the frame size to the terminal
+    width, height = camera.get_frame_dimensions()
+    print(f"[Camera] Frame size: {width} x {height}")
+    print("[Camera] Press 'q' to quit")
+
+    # Track time so we can calculate FPS
+    prev_time = time.time()
+
+    while True:
+        # Grab one frame from the webcam
+        ret, frame = camera.read_frame()
+
+        # If the frame failed, stop the loop
+        if not ret:
+            print("[Camera] Failed to read frame. Stopping.")
+            break
+
+        # Calculate how many frames are showing per second (FPS)
+        curr_time = time.time()
+        fps = 1 / (curr_time - prev_time)
+        prev_time = curr_time
+
+        # Draw the FPS number on the video in green (top-left)
+        cv2.putText(frame, f"FPS: {fps:.1f}", (10, 30),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+
+        # Draw the system label at the bottom of the video
+        cv2.putText(frame, "EyeGuard System", (10, height - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (200, 200, 200), 1)
+
+        # Show the frame in a pop-up window
+        cv2.imshow("EyeGuard - Live Feed", frame)
+
+        # Wait 1ms and check if the user pressed 'q' to quit
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    # Clean up the camera when done
+    camera.release()
