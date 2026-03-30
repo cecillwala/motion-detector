@@ -127,6 +127,7 @@ import cv2
 import json
 import time
 import platform
+import os
 
 # ═══════════════════════════════════════════════════════════
 # CONDITIONAL IMPORTS
@@ -201,34 +202,30 @@ class AlertManager:
                    Use "localhost" if running on the Pi itself.
             mqtt_port: Port for MQTT (default 1883)
             cooldown: Minimum seconds between MQTT publishes
-
-        What to do:
-            1. Store configuration:
-               self.pi_ip = pi_ip
-               self.mqtt_port = mqtt_port
-               self.cooldown = cooldown
-
-            2. Define MQTT topics:
-               self.topic_motion = "alerts/motion"
-               self.topic_warning = "alerts/warning"
-               self.topic_drowsy = "alerts/drowsiness"
-
-            3. Create alert state:
-               self.state = AlertState()
-
-            4. Set up GPIO (handles laptop fallback):
-               self._setup_gpio()
-
-            5. Connect to MQTT:
-               self.mqtt_connected = False
-               self._connect_mqtt(pi_ip, mqtt_port)
-
-            6. Track LED blink timing:
-               self.last_blink_time = time.time()
-               self.blink_state = False  # toggles for blinking effect
         """
-        # YOUR CODE HERE
-        pass
+        # Store configuration
+        self.pi_ip = pi_ip
+        self.mqtt_port = mqtt_port
+        self.cooldown = cooldown
+
+        # Define MQTT topics
+        self.topic_motion = "alerts/motion"
+        self.topic_warning = "alerts/warning"
+        self.topic_drowsy = "alerts/drowsiness"
+
+        # Create alert state
+        self.state = AlertState()
+
+        # Set up GPIO (handles laptop fallback)
+        self._setup_gpio()
+
+        # Connect to MQTT
+        self.mqtt_connected = False
+        self._connect_mqtt(pi_ip, mqtt_port)
+
+        # Track LED blink timing
+        self.last_blink_time = time.time()
+        self.blink_state = False  # toggles for blinking effect
 
     def _setup_gpio(self):
         """
@@ -237,39 +234,35 @@ class AlertManager:
         If running on a Raspberry Pi, this configures the actual
         hardware pins. If running on a laptop, it sets a flag to
         use software-only alerts.
-
-        What to do:
-            try:
-                import RPi.GPIO as GPIO
-                self.GPIO = GPIO
-                self.gpio_available = True
-
-                GPIO.setmode(GPIO.BCM)    # Use BCM pin numbering
-                GPIO.setwarnings(False)   # Suppress warnings
-
-                # Set up output pins
-                GPIO.setup(GPIO_RED_LED, GPIO.OUT)
-                GPIO.setup(GPIO_GREEN_LED, GPIO.OUT)
-                GPIO.setup(GPIO_BUZZER, GPIO.OUT)
-
-                # Start in NORMAL state: green LED on, others off
-                GPIO.output(GPIO_GREEN_LED, GPIO.HIGH)
-                GPIO.output(GPIO_RED_LED, GPIO.LOW)
-                GPIO.output(GPIO_BUZZER, GPIO.LOW)
-
-                print("[GPIO] Hardware alerts initialized")
-                print(f"  Red LED:   GPIO {GPIO_RED_LED} (Pin 11)")
-                print(f"  Green LED: GPIO {GPIO_GREEN_LED} (Pin 15)")
-                print(f"  Buzzer:    GPIO {GPIO_BUZZER} (Pin 13)")
-
-            except (ImportError, RuntimeError):
-                self.GPIO = None
-                self.gpio_available = False
-                print("[GPIO] Not available — running in laptop simulation mode")
-                print("[GPIO] LEDs will be simulated as colored circles on screen")
         """
-        # YOUR CODE HERE
-        pass
+        try:
+            import RPi.GPIO as GPIO
+            self.GPIO = GPIO
+            self.gpio_available = True
+
+            GPIO.setmode(GPIO.BCM)    # Use BCM pin numbering
+            GPIO.setwarnings(False)   # Suppress warnings
+
+            # Set up output pins
+            GPIO.setup(GPIO_RED_LED, GPIO.OUT)
+            GPIO.setup(GPIO_GREEN_LED, GPIO.OUT)
+            GPIO.setup(GPIO_BUZZER, GPIO.OUT)
+
+            # Start in NORMAL state: green LED on, others off
+            GPIO.output(GPIO_GREEN_LED, GPIO.HIGH)
+            GPIO.output(GPIO_RED_LED, GPIO.LOW)
+            GPIO.output(GPIO_BUZZER, GPIO.LOW)
+
+            print("[GPIO] Hardware alerts initialized")
+            print(f"  Red LED:   GPIO {GPIO_RED_LED} (Pin 11)")
+            print(f"  Green LED: GPIO {GPIO_GREEN_LED} (Pin 15)")
+            print(f"  Buzzer:    GPIO {GPIO_BUZZER} (Pin 13)")
+
+        except (ImportError, RuntimeError):
+            self.GPIO = None
+            self.gpio_available = False
+            print("[GPIO] Not available — running in laptop simulation mode")
+            print("[GPIO] LEDs will be simulated as colored circles on screen")
 
     def _connect_mqtt(self, pi_ip, port):
         """
@@ -280,28 +273,24 @@ class AlertManager:
         Args:
             pi_ip: Raspberry Pi IP address
             port: MQTT port number
-
-        What to do:
-            if not MQTT_AVAILABLE:
-                self.mqtt_connected = False
-                self.client = None
-                print("[MQTT] paho-mqtt not installed — skipping")
-                return
-
-            try:
-                self.client = mqtt.Client()
-                self.client.connect(pi_ip, port, 60)
-                self.client.loop_start()
-                self.mqtt_connected = True
-                print(f"[MQTT] Connected to broker at {pi_ip}:{port}")
-            except Exception as e:
-                self.mqtt_connected = False
-                self.client = None
-                print(f"[MQTT] Could not connect: {e}")
-                print("[MQTT] Running without MQTT (visual + GPIO alerts only)")
         """
-        # YOUR CODE HERE
-        pass
+        if not MQTT_AVAILABLE:
+            self.mqtt_connected = False
+            self.client = None
+            print("[MQTT] paho-mqtt not installed — skipping")
+            return
+
+        try:
+            self.client = mqtt.Client()
+            self.client.connect(pi_ip, port, 60)
+            self.client.loop_start()
+            self.mqtt_connected = True
+            print(f"[MQTT] Connected to broker at {pi_ip}:{port}")
+        except Exception as e:
+            self.mqtt_connected = False
+            self.client = None
+            print(f"[MQTT] Could not connect: {e}")
+            print("[MQTT] Running without MQTT (visual + GPIO alerts only)")
 
     def _publish(self, topic, payload):
         """
@@ -310,36 +299,32 @@ class AlertManager:
         Args:
             topic: MQTT topic string
             payload: Dictionary to be sent as JSON
-
-        What to do:
-            1. Check if MQTT is connected:
-               if not self.mqtt_connected or self.client is None:
-                   return
-
-            2. Check cooldown based on topic:
-               now = time.time()
-               if topic == self.topic_motion:
-                   if now - self.state.last_motion_time < self.cooldown:
-                       return
-                   self.state.last_motion_time = now
-               elif topic == self.topic_warning:
-                   if now - self.state.last_warning_time < self.cooldown:
-                       return
-                   self.state.last_warning_time = now
-               elif topic == self.topic_drowsy:
-                   if now - self.state.last_drowsy_time < self.cooldown:
-                       return
-                   self.state.last_drowsy_time = now
-
-            3. Serialize and publish:
-               try:
-                   json_str = json.dumps(payload)
-                   self.client.publish(topic, json_str)
-               except Exception as e:
-                   print(f"[MQTT] Publish error: {e}")
         """
-        # YOUR CODE HERE
-        pass
+        # Check if MQTT is connected
+        if not self.mqtt_connected or self.client is None:
+            return
+
+        # Check cooldown based on topic
+        now = time.time()
+        if topic == self.topic_motion:
+            if now - self.state.last_motion_time < self.cooldown:
+                return
+            self.state.last_motion_time = now
+        elif topic == self.topic_warning:
+            if now - self.state.last_warning_time < self.cooldown:
+                return
+            self.state.last_warning_time = now
+        elif topic == self.topic_drowsy:
+            if now - self.state.last_drowsy_time < self.cooldown:
+                return
+            self.state.last_drowsy_time = now
+
+        # Serialize and publish
+        try:
+            json_str = json.dumps(payload)
+            self.client.publish(topic, json_str)
+        except Exception as e:
+            print(f"[MQTT] Publish error: {e}")
 
     def _determine_tier(self):
         """
@@ -349,17 +334,13 @@ class AlertManager:
           CRITICAL: Drowsiness confirmed (20+ frames eyes closed)
           WARNING:  Eyes are closing (EAR < 0.25 but < 20 frames)
           NORMAL:   Eyes open or no face detected
-
-        What to do:
-            if self.state.drowsy_active:
-                self.state.current_tier = TIER_CRITICAL
-            elif self.state.eyes_closed:
-                self.state.current_tier = TIER_WARNING
-            else:
-                self.state.current_tier = TIER_NORMAL
         """
-        # YOUR CODE HERE
-        pass
+        if self.state.drowsy_active:
+            self.state.current_tier = TIER_CRITICAL
+        elif self.state.eyes_closed:
+            self.state.current_tier = TIER_WARNING
+        else:
+            self.state.current_tier = TIER_NORMAL
 
     def check_motion(self, motion_result):
         """
@@ -368,20 +349,16 @@ class AlertManager:
         Args:
             motion_result: MotionResult from Melanie & Stan's module.
                            Has a .detected attribute (bool).
-
-        What to do:
-            1. Update visual state:
-               self.state.motion_active = motion_result.detected
-
-            2. If motion detected, publish to MQTT:
-               if motion_result.detected:
-                   self._publish(self.topic_motion, {
-                       "type": "motion",
-                       "timestamp": time.time()
-                   })
         """
-        # YOUR CODE HERE
-        pass
+        # Update visual state
+        self.state.motion_active = motion_result.detected
+
+        # If motion detected, publish to MQTT
+        if motion_result.detected:
+            self._publish(self.topic_motion, {
+                "type": "motion",
+                "timestamp": time.time()
+            })
 
     def check_drowsiness(self, ear_result):
         """
@@ -391,42 +368,38 @@ class AlertManager:
             ear_result: EARResult from Timo's module.
                         Can be None if no face was detected or
                         no motion was detected (face detection was skipped).
-
-        What to do:
-            1. Handle None (no face or no motion):
-               if ear_result is None:
-                   self.state.eyes_closed = False
-                   self.state.drowsy_active = False
-                   self._determine_tier()
-                   return
-
-            2. Update states from EAR result:
-               self.state.eyes_closed = ear_result.eyes_closed
-               self.state.drowsy_active = ear_result.drowsy
-
-            3. Determine the alert tier:
-               self._determine_tier()
-
-            4. Publish based on tier:
-               if self.state.current_tier == TIER_CRITICAL:
-                   self._publish(self.topic_drowsy, {
-                       "type": "drowsiness",
-                       "tier": "critical",
-                       "ear_value": ear_result.ear_value,
-                       "consecutive_frames": ear_result.consecutive_frames,
-                       "timestamp": time.time()
-                   })
-               elif self.state.current_tier == TIER_WARNING:
-                   self._publish(self.topic_warning, {
-                       "type": "warning",
-                       "tier": "warning",
-                       "ear_value": ear_result.ear_value,
-                       "consecutive_frames": ear_result.consecutive_frames,
-                       "timestamp": time.time()
-                   })
         """
-        # YOUR CODE HERE
-        pass
+        # Handle None (no face or no motion)
+        if ear_result is None:
+            self.state.eyes_closed = False
+            self.state.drowsy_active = False
+            self._determine_tier()
+            return
+
+        # Update states from EAR result
+        self.state.eyes_closed = ear_result.eyes_closed
+        self.state.drowsy_active = ear_result.drowsy
+
+        # Determine the alert tier
+        self._determine_tier()
+
+        # Publish based on tier
+        if self.state.current_tier == TIER_CRITICAL:
+            self._publish(self.topic_drowsy, {
+                "type": "drowsiness",
+                "tier": "critical",
+                "ear_value": ear_result.ear_value,
+                "consecutive_frames": ear_result.consecutive_frames,
+                "timestamp": time.time()
+            })
+        elif self.state.current_tier == TIER_WARNING:
+            self._publish(self.topic_warning, {
+                "type": "warning",
+                "tier": "warning",
+                "ear_value": ear_result.ear_value,
+                "consecutive_frames": ear_result.consecutive_frames,
+                "timestamp": time.time()
+            })
 
     def update_leds(self):
         """
@@ -434,53 +407,50 @@ class AlertManager:
 
         This is a no-op on laptops (gpio_available == False).
         On the Pi, it directly controls the hardware.
+        """
+        if not self.gpio_available:
+            return
 
-        What to do:
-            if not self.gpio_available:
-                return
+        now = time.time()
 
-            now = time.time()
+        if self.state.current_tier == TIER_NORMAL:
+            # Green LED steady on, red off, buzzer off
+            self.GPIO.output(GPIO_GREEN_LED, self.GPIO.HIGH)
+            self.GPIO.output(GPIO_RED_LED, self.GPIO.LOW)
+            self.GPIO.output(GPIO_BUZZER, self.GPIO.LOW)
 
-            if self.state.current_tier == TIER_NORMAL:
-                # Green LED steady on, red off, buzzer off
+        elif self.state.current_tier == TIER_WARNING:
+            # Amber = Red + Green both on, slow blink (toggle every 0.5s)
+            if now - self.last_blink_time > 0.5:
+                self.blink_state = not self.blink_state
+                self.last_blink_time = now
+
+            if self.blink_state:
+                self.GPIO.output(GPIO_RED_LED, self.GPIO.HIGH)
                 self.GPIO.output(GPIO_GREEN_LED, self.GPIO.HIGH)
+            else:
                 self.GPIO.output(GPIO_RED_LED, self.GPIO.LOW)
-                self.GPIO.output(GPIO_BUZZER, self.GPIO.LOW)
-
-            elif self.state.current_tier == TIER_WARNING:
-                # Amber = Red + Green both on, slow blink (toggle every 0.5s)
-                if now - self.last_blink_time > 0.5:
-                    self.blink_state = not self.blink_state
-                    self.last_blink_time = now
-
-                if self.blink_state:
-                    self.GPIO.output(GPIO_RED_LED, self.GPIO.HIGH)
-                    self.GPIO.output(GPIO_GREEN_LED, self.GPIO.HIGH)
-                else:
-                    self.GPIO.output(GPIO_RED_LED, self.GPIO.LOW)
-                    self.GPIO.output(GPIO_GREEN_LED, self.GPIO.LOW)
-
-                # Short beep every 2 seconds
-                if now - self.state.last_warning_time >= 2.0:
-                    self.GPIO.output(GPIO_BUZZER, self.GPIO.HIGH)
-                    time.sleep(0.1)   # 100ms beep
-                    self.GPIO.output(GPIO_BUZZER, self.GPIO.LOW)
-
-            elif self.state.current_tier == TIER_CRITICAL:
-                # Red LED fast flash (toggle every 0.2s)
-                if now - self.last_blink_time > 0.2:
-                    self.blink_state = not self.blink_state
-                    self.last_blink_time = now
-
-                self.GPIO.output(GPIO_RED_LED,
-                    self.GPIO.HIGH if self.blink_state else self.GPIO.LOW)
                 self.GPIO.output(GPIO_GREEN_LED, self.GPIO.LOW)
 
-                # Continuous buzzer
+            # Short beep every 2 seconds
+            if now - self.state.last_warning_time >= 2.0:
                 self.GPIO.output(GPIO_BUZZER, self.GPIO.HIGH)
-        """
-        # YOUR CODE HERE
-        pass
+                time.sleep(0.1)   # 100ms beep
+                self.GPIO.output(GPIO_BUZZER, self.GPIO.LOW)
+                self.state.last_warning_time = now
+
+        elif self.state.current_tier == TIER_CRITICAL:
+            # Red LED fast flash (toggle every 0.2s)
+            if now - self.last_blink_time > 0.2:
+                self.blink_state = not self.blink_state
+                self.last_blink_time = now
+
+            self.GPIO.output(GPIO_RED_LED,
+                self.GPIO.HIGH if self.blink_state else self.GPIO.LOW)
+            self.GPIO.output(GPIO_GREEN_LED, self.GPIO.LOW)
+
+            # Continuous buzzer
+            self.GPIO.output(GPIO_BUZZER, self.GPIO.HIGH)
 
     def draw_alerts(self, frame):
         """
@@ -494,94 +464,91 @@ class AlertManager:
 
         Returns:
             The annotated frame
-
-        What to do:
-            1. Get frame dimensions:
-               h, w = frame.shape[:2]
-
-            2. Draw tier-specific alerts:
-
-               if self.state.current_tier == TIER_CRITICAL:
-                   # Red border (fast flash simulated by alternating thickness)
-                   cv2.rectangle(frame, (0, 0), (w, h), (0, 0, 255), 8)
-                   cv2.putText(frame, "DROWSINESS ALERT - CRITICAL!",
-                               (10, 30), cv2.FONT_HERSHEY_SIMPLEX,
-                               1.0, (0, 0, 255), 2)
-
-               elif self.state.current_tier == TIER_WARNING:
-                   # Amber/orange border
-                   cv2.rectangle(frame, (0, 0), (w, h), (0, 200, 255), 6)
-                   cv2.putText(frame, "WARNING - Eyes Closing",
-                               (10, 30), cv2.FONT_HERSHEY_SIMPLEX,
-                               0.8, (0, 200, 255), 2)
-
-            3. If motion is active, show motion indicator:
-               if self.state.motion_active:
-                   cv2.putText(frame, "MOTION DETECTED",
-                               (10, 65), cv2.FONT_HERSHEY_SIMPLEX,
-                               0.7, (0, 255, 0), 2)
-
-            4. Draw simulated LED indicators (especially useful on laptop):
-               # Simulated LEDs in the top-right corner of the frame
-               led_x = w - 80
-               led_y_green = 30
-               led_y_red = 60
-
-               if self.state.current_tier == TIER_NORMAL:
-                   # Green LED on (filled circle), red LED off (outline)
-                   cv2.circle(frame, (led_x, led_y_green), 12, (0, 255, 0), -1)
-                   cv2.circle(frame, (led_x, led_y_red), 12, (0, 0, 100), 1)
-               elif self.state.current_tier == TIER_WARNING:
-                   # Both on = amber
-                   cv2.circle(frame, (led_x, led_y_green), 12, (0, 255, 0), -1)
-                   cv2.circle(frame, (led_x, led_y_red), 12, (0, 0, 255), -1)
-               elif self.state.current_tier == TIER_CRITICAL:
-                   # Red on, green off
-                   cv2.circle(frame, (led_x, led_y_green), 12, (0, 100, 0), 1)
-                   cv2.circle(frame, (led_x, led_y_red), 12, (0, 0, 255), -1)
-
-               # Labels
-               cv2.putText(frame, "G", (led_x - 6, led_y_green + 5),
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1)
-               cv2.putText(frame, "R", (led_x - 5, led_y_red + 5),
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1)
-
-            5. Draw status bar at bottom:
-               tier_text = f"Tier: {self.state.current_tier}"
-               motion_text = "MOTION" if self.state.motion_active else "STILL"
-               status = f"{tier_text} | {motion_text}"
-               cv2.putText(frame, status, (10, h - 20),
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.6,
-                           (255, 255, 255), 2)
-
-            6. Return frame
         """
-        # YOUR CODE HERE
-        pass
+        # Get frame dimensions
+        h, w = frame.shape[:2]
+
+        # Draw tier-specific alerts
+        if self.state.current_tier == TIER_CRITICAL:
+            # Red border (fast flash simulated by alternating thickness)
+            thickness = 8 if int(time.time() * 5) % 2 == 0 else 4
+            cv2.rectangle(frame, (0, 0), (w, h), (0, 0, 255), thickness)
+            cv2.putText(frame, "DROWSINESS ALERT - CRITICAL!",
+                        (10, 30), cv2.FONT_HERSHEY_SIMPLEX,
+                        1.0, (0, 0, 255), 2)
+
+        elif self.state.current_tier == TIER_WARNING:
+            # Amber/orange border
+            cv2.rectangle(frame, (0, 0), (w, h), (0, 200, 255), 6)
+            cv2.putText(frame, "WARNING - Eyes Closing",
+                        (10, 30), cv2.FONT_HERSHEY_SIMPLEX,
+                        0.8, (0, 200, 255), 2)
+
+        # If motion is active, show motion indicator
+        if self.state.motion_active:
+            cv2.putText(frame, "MOTION DETECTED",
+                        (10, 65), cv2.FONT_HERSHEY_SIMPLEX,
+                        0.7, (0, 255, 0), 2)
+
+        # Draw simulated LED indicators (especially useful on laptop)
+        # Simulated LEDs in the top-right corner of the frame
+        led_x = w - 80
+        led_y_green = 30
+        led_y_red = 60
+
+        if self.state.current_tier == TIER_NORMAL:
+            # Green LED on (filled circle), red LED off (outline)
+            cv2.circle(frame, (led_x, led_y_green), 12, (0, 255, 0), -1)
+            cv2.circle(frame, (led_x, led_y_red), 12, (0, 0, 100), 1)
+        elif self.state.current_tier == TIER_WARNING:
+            # Both on = amber (if blinking, simulate that too)
+            blink = int(time.time() * 2) % 2 == 0
+            color_g = (0, 255, 0) if blink else (0, 100, 0)
+            color_r = (0, 200, 255) if blink else (0, 100, 100) # Amber-ish
+            cv2.circle(frame, (led_x, led_y_green), 12, color_g, -1)
+            cv2.circle(frame, (led_x, led_y_red), 12, color_r, -1)
+        elif self.state.current_tier == TIER_CRITICAL:
+            # Red on, green off
+            blink = int(time.time() * 5) % 2 == 0
+            color_r = (0, 0, 255) if blink else (0, 0, 100)
+            cv2.circle(frame, (led_x, led_y_green), 12, (0, 100, 0), 1)
+            cv2.circle(frame, (led_x, led_y_red), 12, color_r, -1)
+
+        # Labels
+        cv2.putText(frame, "G", (led_x - 6, led_y_green + 5),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1)
+        cv2.putText(frame, "R", (led_x - 5, led_y_red + 5),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1)
+
+        # Draw status bar at bottom
+        tier_text = f"Tier: {self.state.current_tier}"
+        motion_text = "MOTION" if self.state.motion_active else "STILL"
+        status = f"{tier_text} | {motion_text}"
+        cv2.putText(frame, status, (10, h - 20),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6,
+                    (255, 255, 255), 2)
+
+        return frame
 
     def cleanup(self):
         """
         Disconnect MQTT and clean up GPIO resources.
 
         Called when the program exits.
-
-        What to do:
-            # Clean up MQTT
-            if self.mqtt_connected and self.client is not None:
-                self.client.loop_stop()
-                self.client.disconnect()
-                print("[MQTT] Disconnected")
-
-            # Clean up GPIO
-            if self.gpio_available and self.GPIO is not None:
-                self.GPIO.output(GPIO_BUZZER, self.GPIO.LOW)    # Silence buzzer
-                self.GPIO.output(GPIO_RED_LED, self.GPIO.LOW)   # LEDs off
-                self.GPIO.output(GPIO_GREEN_LED, self.GPIO.LOW)
-                self.GPIO.cleanup()
-                print("[GPIO] Cleaned up")
         """
-        # YOUR CODE HERE
-        pass
+        # Clean up MQTT
+        if self.mqtt_connected and self.client is not None:
+            self.client.loop_stop()
+            self.client.disconnect()
+            print("[MQTT] Disconnected")
+
+        # Clean up GPIO
+        if self.gpio_available and self.GPIO is not None:
+            self.GPIO.output(GPIO_BUZZER, self.GPIO.LOW)    # Silence buzzer
+            self.GPIO.output(GPIO_RED_LED, self.GPIO.LOW)   # LEDs off
+            self.GPIO.output(GPIO_GREEN_LED, self.GPIO.LOW)
+            self.GPIO.cleanup()
+            print("[GPIO] Cleaned up")
 
 
 # ── FOR STANDALONE TESTING ──────────────────────────────
@@ -592,62 +559,84 @@ if __name__ == "__main__":
 
     This test simulates cycling through all three alert tiers
     to verify visual overlays, LED simulation, and GPIO control.
-
-    What you should see:
-        - NORMAL tier: green simulated LED, "NORMAL" in status bar
-        - WARNING tier: amber border, both LEDs lit, "WARNING" in status
-        - CRITICAL tier: red border, red LED flashing, "CRITICAL" in status
-        - Tiers cycle every few seconds
-
-    What to implement:
-        1. Create AlertManager:
-           alerts = AlertManager(pi_ip="localhost", cooldown=2.0)
-
-        2. Open camera:
-           cap = cv2.VideoCapture(0)
-
-        3. Create mock result classes:
-           class MockMotion:
-               def __init__(self, detected):
-                   self.detected = detected
-
-           class MockEAR:
-               def __init__(self, eyes_closed, drowsy, ear_value=0.20, consec=25):
-                   self.eyes_closed = eyes_closed
-                   self.drowsy = drowsy
-                   self.ear_value = ear_value
-                   self.consecutive_frames = consec
-
-        4. Loop cycling through tiers:
-           frame_count = 0
-           while True:
-               ret, frame = cap.read()
-               if not ret: break
-
-               # Cycle: NORMAL → WARNING → CRITICAL every 90 frames
-               cycle = (frame_count // 90) % 3
-
-               if cycle == 0:      # NORMAL
-                   alerts.check_motion(MockMotion(detected=False))
-                   alerts.check_drowsiness(MockEAR(False, False, 0.30, 0))
-               elif cycle == 1:    # WARNING
-                   alerts.check_motion(MockMotion(detected=True))
-                   alerts.check_drowsiness(MockEAR(True, False, 0.22, 10))
-               elif cycle == 2:    # CRITICAL
-                   alerts.check_motion(MockMotion(detected=True))
-                   alerts.check_drowsiness(MockEAR(True, True, 0.18, 25))
-
-               alerts.update_leds()
-               alerts.draw_alerts(frame)
-
-               cv2.imshow("Alert Tier Test - Ritchie", frame)
-               if cv2.waitKey(1) & 0xFF == ord('q'): break
-               frame_count += 1
-
-        5. Cleanup:
-           cap.release()
-           cv2.destroyAllWindows()
-           alerts.cleanup()
     """
-    # YOUR CODE HERE
-    pass
+    # 1. Create AlertManager
+    alerts = AlertManager(pi_ip="localhost", cooldown=2.0)
+
+    # 2. Open camera
+    cap = cv2.VideoCapture(0)
+    if not cap.isOpened():
+        print("Error: Could not open camera. Testing with dummy frame.")
+        import numpy as np
+        frame_dummy = np.zeros((480, 640, 3), dtype=np.uint8)
+    else:
+        frame_dummy = None
+
+    # 3. Create mock result classes
+    class MockMotion:
+        def __init__(self, detected):
+            self.detected = detected
+
+    class MockEAR:
+        def __init__(self, eyes_closed, drowsy, ear_value=0.20, consec=25):
+            self.eyes_closed = eyes_closed
+            self.drowsy = drowsy
+            self.ear_value = ear_value
+            self.consecutive_frames = consec
+
+    # 4. Loop cycling through tiers
+    frame_count = 0
+    print("Starting alert test loop. Press 'q' to quit.")
+
+    try:
+        while True:
+            if cap is not None and cap.isOpened():
+                ret, frame = cap.read()
+                if not ret: break
+            else:
+                frame = frame_dummy.copy()
+
+            # Cycle: NORMAL → WARNING → CRITICAL every 90 frames (approx 3s at 30fps)
+            cycle = (frame_count // 90) % 3
+
+            if cycle == 0:      # NORMAL
+                alerts.check_motion(MockMotion(detected=False))
+                alerts.check_drowsiness(MockEAR(False, False, 0.30, 0))
+            elif cycle == 1:    # WARNING
+                alerts.check_motion(MockMotion(detected=True))
+                alerts.check_drowsiness(MockEAR(True, False, 0.22, 10))
+            elif cycle == 2:    # CRITICAL
+                alerts.check_motion(MockMotion(detected=True))
+                alerts.check_drowsiness(MockEAR(True, True, 0.18, 25))
+
+            alerts.update_leds()
+            alerts.draw_alerts(frame)
+
+            # Headless safe display simulation
+            try:
+                if "DISPLAY" in os.environ:
+                    cv2.imshow("Alert Tier Test - Ritchie", frame)
+                    if cv2.waitKey(1) & 0xFF == ord('q'): break
+                else:
+                    # In headless, just print the current tier to verify logic
+                    print(f"Frame {frame_count:03d}: {alerts.state.current_tier:8s} | Motion: {alerts.state.motion_active}", end="\r")
+                    if frame_count >= 300: break # Run for a bit and stop
+            except cv2.error:
+                # Fallback for headless if DISPLAY is set but not functional
+                print(f"Frame {frame_count:03d}: {alerts.state.current_tier:8s} | Motion: {alerts.state.motion_active}", end="\r")
+                if frame_count >= 300: break # Run for a bit and stop
+
+            frame_count += 1
+            time.sleep(0.033) # Simulate 30fps
+    except KeyboardInterrupt:
+        pass
+    finally:
+        # 5. Cleanup
+        if cap is not None and cap.isOpened():
+            cap.release()
+        try:
+            cv2.destroyAllWindows()
+        except cv2.error:
+            pass
+        alerts.cleanup()
+        print("\nTest complete.")
