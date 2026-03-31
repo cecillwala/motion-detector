@@ -5,7 +5,7 @@ Drowsiness detection core. No camera, no UI, no hardware.
 
 import numpy as np
 from scipy.spatial import distance as dist
-
+from dataclasses import dataclass
 
 # --- Constants ---
 EAR_THRESHOLD = 0.25       # Below this → eye is closing
@@ -168,3 +168,45 @@ def process_frame(landmarks: np.ndarray, frame_counter: int) -> tuple[float, int
     frame_counter, alert = evaluate_drowsiness(ear, frame_counter)
 
     return ear, frame_counter, alert
+
+@dataclass
+class EARResult:
+    ear_value: float = 0.0
+    left_ear: float = 0.0
+    right_ear: float = 0.0
+    eyes_closed: bool = False
+    consecutive_frames: int = 0
+    drowsy: bool = False
+
+
+class EARCalculator:
+    def __init__(self, ear_threshold=0.25, consec_frames=20):
+        self.ear_threshold = ear_threshold
+        self.consec_frames = consec_frames
+        self.closed_frame_counter = 0
+
+    def calculate(self, left_eye, right_eye):
+        left_ear = compute_EAR(np.array(left_eye))
+        right_ear = compute_EAR(np.array(right_eye))
+        avg_ear = (left_ear + right_ear) / 2.0
+
+        eyes_closed = avg_ear < self.ear_threshold
+
+        if eyes_closed:
+            self.closed_frame_counter += 1
+        else:
+            self.closed_frame_counter = 0
+
+        drowsy = self.closed_frame_counter >= self.consec_frames
+
+        return EARResult(
+            ear_value=avg_ear,
+            left_ear=left_ear,
+            right_ear=right_ear,
+            eyes_closed=eyes_closed,
+            consecutive_frames=self.closed_frame_counter,
+            drowsy=drowsy
+        )
+
+    def reset(self):
+        self.closed_frame_counter = 0
