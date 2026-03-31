@@ -123,9 +123,7 @@ def main():
 
     # Deno's module: finds faces and extracts eye landmarks
     # Make sure the .dat file is in the project root!
-    face_eye = FaceEyeDetector(
-        predictor_path="shape_predictor_68_face_landmarks.dat"
-    )
+    face_eye = FaceEyeDetector()
     print("  [✓] Face/eye detector initialized (dlib 68-point)")
 
     # Timo's module: calculates EAR and tracks drowsiness

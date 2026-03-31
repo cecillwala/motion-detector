@@ -1,7 +1,5 @@
 opencv-python==4.9.0.80
-dlib==19.24.2
+mediapipe>=0.10.0
 numpy==1.26.4
-imutils==0.5.4
 paho-mqtt==2.0.0
 scipy==1.12.0
-cmake==3.28.1
