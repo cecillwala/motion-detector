@@ -167,11 +167,11 @@ def main():
                 motion_result = motion.detect(frame)
                 motion.draw_on_frame(frame, motion_result)
 
-            # ── GATED: FACE/EYE/EAR PIPELINE ───────────
-            # Steps 5-7 in spec workflow:
-            # Only run the expensive face/eye detection when
-            # motion is detected. This conserves CPU resources
-            # on the Raspberry Pi 3 (per spec section 4.4).
+                # ── GATED: FACE/EYE/EAR PIPELINE ───────────
+                # Steps 5-7 in spec workflow:
+                # Only run the expensive face/eye detection when
+                # motion is detected. This conserves CPU resources
+                # on the Raspberry Pi 3 (per spec section 4.4).
                 if motion_result.detected:
 
                     # ── DETECT FACE & EYES (Deno) ───────────
@@ -201,33 +201,33 @@ def main():
                     ear_calc.reset()
                     ear_result = None
 
-            # ── TRIGGER ALERTS (Ritchie) ────────────────
-            # Steps 8-9: Check results and trigger tiered alerts
-            # This runs EVERY frame regardless of motion.
+                # ── TRIGGER ALERTS (Ritchie) ────────────────
+                # Steps 8-9: Check results and trigger tiered alerts
+                # This runs EVERY frame regardless of motion.
 
-            # Check motion (updates alert state, may publish MQTT)
-            alerts.check_motion(motion_result)
+                # Check motion (updates alert state, may publish MQTT)
+                alerts.check_motion(motion_result)
 
-            # Check drowsiness (uses ear_result, may be None)
-            alerts.check_drowsiness(ear_result)
+                # Check drowsiness (uses ear_result, may be None)
+                alerts.check_drowsiness(ear_result)
 
-            # Update hardware LEDs and buzzer (no-op on laptop)
-            alerts.update_leds()
+                # Update hardware LEDs and buzzer (no-op on laptop)
+                alerts.update_leds()
 
-            # Draw visual overlays (borders, text, simulated LEDs)
-            alerts.draw_alerts(frame)
+                # Draw visual overlays (borders, text, simulated LEDs)
+                alerts.draw_alerts(frame)
 
-            # ── DISPLAY THE FRAME ───────────────────────
-            # Step 9: Display annotated frame with EAR overlay
-            # At this point, the frame has annotations from:
-            #   - Melanie & Stan (green motion boxes)
-            #   - Deno (yellow eye landmarks, if motion present)
-            #   - Ritchie (tier borders, LED indicators, status bar)
-            cv2.imshow("EyeGuard - Motion & Drowsiness Detection", frame)
+                # ── DISPLAY THE FRAME ───────────────────────
+                # Step 9: Display annotated frame with EAR overlay
+                # At this point, the frame has annotations from:
+                #   - Melanie & Stan (green motion boxes)
+                #   - Deno (yellow eye landmarks, if motion present)
+                #   - Ritchie (tier borders, LED indicators, status bar)
+                cv2.imshow("EyeGuard - Motion & Drowsiness Detection", frame)
 
-            # ── CHECK FOR QUIT ──────────────────────────
-            if cv2.waitKey(30) & 0xFF == ord('q'):
-                break
+                # ── CHECK FOR QUIT ──────────────────────────
+                if cv2.waitKey(30) & 0xFF == ord('q'):
+                    break
 
     finally:
         # ── CLEANUP ─────────────────────────────────────
