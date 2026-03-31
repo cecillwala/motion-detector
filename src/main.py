@@ -148,6 +148,7 @@ def main():
     # processing to conserve CPU on the Pi 3.
 
     ear_result = None  # Track across frames for alert state
+    frame_count = 0
 
     try:
         while True:
@@ -157,46 +158,48 @@ def main():
             if not ret:
                 print("Error: Failed to capture frame. Camera disconnected?")
                 break
+            frame_count += 1
 
-            # ── DETECT MOTION (Melanie & Stan) ──────────
-            # Step 4 in spec workflow: Run motion detection
-            # This runs EVERY frame — it's lightweight.
-            motion_result = motion.detect(frame)
-            motion.draw_on_frame(frame, motion_result)
+            if frame_count % 3 == 0:
+                # ── DETECT MOTION (Melanie & Stan) ──────────
+                # Step 4 in spec workflow: Run motion detection
+                # This runs EVERY frame — it's lightweight.
+                motion_result = motion.detect(frame)
+                motion.draw_on_frame(frame, motion_result)
 
             # ── GATED: FACE/EYE/EAR PIPELINE ───────────
             # Steps 5-7 in spec workflow:
             # Only run the expensive face/eye detection when
             # motion is detected. This conserves CPU resources
             # on the Raspberry Pi 3 (per spec section 4.4).
-            if motion_result.detected:
+                if motion_result.detected:
 
-                # ── DETECT FACE & EYES (Deno) ───────────
-                # Step 5-6: If motion → run face detection
-                # If face → extract eye landmarks (points 37-48)
-                face_result = face_eye.detect(frame)
-                face_eye.draw_on_frame(frame, face_result)
+                    # ── DETECT FACE & EYES (Deno) ───────────
+                    # Step 5-6: If motion → run face detection
+                    # If face → extract eye landmarks (points 37-48)
+                    face_result = face_eye.detect(frame)
+                    face_eye.draw_on_frame(frame, face_result)
 
-                # ── CALCULATE EAR (Timo) ────────────────
-                # Step 7: Calculate EAR for both eyes
-                if face_result.face_detected:
-                    ear_result = ear_calc.calculate(
-                        face_result.left_eye,
-                        face_result.right_eye
-                    )
+                    # ── CALCULATE EAR (Timo) ────────────────
+                    # Step 7: Calculate EAR for both eyes
+                    if face_result.face_detected:
+                        ear_result = ear_calc.calculate(
+                            face_result.left_eye,
+                            face_result.right_eye
+                        )
+                    else:
+                        # Face not found even though motion exists
+                        # (could be non-human motion). Reset EAR state.
+                        ear_calc.reset()
+                        ear_result = None
+
                 else:
-                    # Face not found even though motion exists
-                    # (could be non-human motion). Reset EAR state.
+                    # ── NO MOTION — SKIP EXPENSIVE PROCESSING ──
+                    # No motion detected. Skip face/eye detection
+                    # entirely to save CPU. Reset drowsiness state
+                    # so we don't carry stale alerts.
                     ear_calc.reset()
                     ear_result = None
-
-            else:
-                # ── NO MOTION — SKIP EXPENSIVE PROCESSING ──
-                # No motion detected. Skip face/eye detection
-                # entirely to save CPU. Reset drowsiness state
-                # so we don't carry stale alerts.
-                ear_calc.reset()
-                ear_result = None
 
             # ── TRIGGER ALERTS (Ritchie) ────────────────
             # Steps 8-9: Check results and trigger tiered alerts
@@ -223,7 +226,7 @@ def main():
             cv2.imshow("EyeGuard - Motion & Drowsiness Detection", frame)
 
             # ── CHECK FOR QUIT ──────────────────────────
-            if cv2.waitKey(1) & 0xFF == ord('q'):
+            if cv2.waitKey(30) & 0xFF == ord('q'):
                 break
 
     finally:
