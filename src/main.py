@@ -160,7 +160,7 @@ def main():
                 break
             frame_count += 1
 
-            if frame_count % 3 == 0:
+            if frame_count % 10 == 0:
                 # ── DETECT MOTION (Melanie & Stan) ──────────
                 # Step 4 in spec workflow: Run motion detection
                 # This runs EVERY frame — it's lightweight.
